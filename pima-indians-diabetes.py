@@ -24,6 +24,8 @@ from sklearn.gaussian_process.kernels import RBF
 from sklearn.linear_model import SGDClassifier
 from sklearn.linear_model import LogisticRegressionCV
 
+from sklearn.decomposition import KernelPCA
+
 SEED = 10
 
 """Load dataset"""
@@ -88,6 +90,16 @@ def compare(names, results, figsize=None):
 
 X_train, X_validation, Y_train, Y_validation = split(dataset)
 
+"""Preprocess"""
+means = X_train.mean(axis=0)
+X_train -= means
+X_validation -= means
+
+# """PCA"""
+# pca = KernelPCA()
+# X_train = pca.fit_transform(X_train)
+# X_validation = pca.transform(X_validation)
+
 models = []
 models.append(('LR', LogisticRegression()))
 models.append(('LDA', LinearDiscriminantAnalysis()))
@@ -99,8 +111,8 @@ models.append(('QDA', QuadraticDiscriminantAnalysis()))
 models.append(('ABC', AdaBoostClassifier()))
 models.append(('MLP', MLPClassifier()))
 models.append(('SVM RBF', SVC(gamma=2, C=1)))
-models.append(('GPC', GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True)))
-models.append(('SGD', SGDClassifier(loss='log')))
+# models.append(('GPC', GaussianProcessClassifier(1.0 * RBF(1.0), warm_start=True)))
+# models.append(('SGD', SGDClassifier(loss='log')))
 models.append(('LRCV', LogisticRegressionCV()))
 
 names, results = evaluate(X_train, Y_train, models)
@@ -137,6 +149,27 @@ accuracy_score(Y_train, pred_train)
 accuracy_score(Y_validation, pred_validation)
 
 
+model = RandomForestClassifier(random_state=SEED, n_estimators=10, min_samples_split=2, min_samples_leaf=1)
+kfold = cross_validation.KFold(X_train.shape[0], n_folds=3, random_state=SEED)
+scores = cross_validation.cross_val_score(model, X_train, Y_train, cv=kfold)
+scores.mean()
+
+model = RandomForestClassifier(random_state=SEED, n_estimators=50, min_samples_split=4, min_samples_leaf=2)
+kfold = cross_validation.KFold(X_train.shape[0], n_folds=3, random_state=SEED)
+scores = cross_validation.cross_val_score(model, X_train, Y_train, cv=kfold)
+scores.mean()
+
+model.fit(X_train, Y_train)
+predictions = model.predict(X_validation)
+accuracy_score(Y_validation, predictions)
+
+#Consider using PCA to find proper components
+#Don't forget to demean
+#Also look into how to encode categorical variables
+#Set aside a test set and don't touch until final check
+#Use different validation set sizes to determine bias/variance
+#Finally try out XGBoost
+
 
 #
 #
@@ -157,7 +190,7 @@ accuracy_score(Y_validation, pred_validation)
 # validation_accuracy
 #
 #
-# 
+#
 # """
 # http://scikit-learn.org/stable/auto_examples/classification/plot_classifier_comparison.html
 # models = [
